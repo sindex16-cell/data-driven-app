@@ -76,6 +76,7 @@ function drawTimeline() {
     [x(p.trainArrival), TRAIN_Y],
     [x(p.busDeparture), BUS_Y],
     [x(p.busDeparture + route.bus.ride), BUS_Y],
+    [x(p.arrive), BUS_Y],
   ].map(([px, py]) => `${px},${py}`).join(" ");
 
   // Red trip: the latest trip that still arrives by the limit. Draw it first, so green is on top.
@@ -87,6 +88,7 @@ function drawTimeline() {
     parts.push(`<polyline points="${points(latest)}" class="trip late"/>`);
     dot("late", latest.leave, TRAIN_Y, `Latest leave ${toText(latest.leave)}`, -52);
     dot("late", latest.busDeparture, BUS_Y, `Latest bus ${toText(latest.busDeparture)}`, 54);
+    dot("late", latest.arrive, BUS_Y, `Arrive ${toText(latest.arrive)}`, 54);
   }
 
   parts.push(`<polyline points="${points(result)}" class="trip safe"/>`);
@@ -94,7 +96,7 @@ function drawTimeline() {
   dot("safe", result.trainDeparture, TRAIN_Y, "Train departs", -34);
   dot("safe", result.trainArrival, TRAIN_Y, "Train arrives", -34);
   dot("safe", result.busDeparture, BUS_Y, "Bus departs", 36);
-  dot("safe", result.busDeparture + route.bus.ride, BUS_Y, "Bus arrives", 36);
+  dot("safe", result.arrive, BUS_Y, `Arrive ${toText(result.arrive)}`, 36);
 
   $("timeline").innerHTML =
     `<div class="scroll"><svg viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" role="img" ` +
