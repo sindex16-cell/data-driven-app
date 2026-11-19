@@ -35,73 +35,71 @@ function refreshDay() {
 // The green line shows your trip: walk, train, transfer, bus.
 function drawTimeline() {
   const PX = 11;           // Pixels for each minute.
-  const LEFT = 48;         // Space for the lane names.
-  const TRAIN_Y = 84;
-  const BUS_Y = 164;
+  const LEFT = 48;         // Space for the row names.
+  const HOME_Y = 66;
+  const TRAIN_Y = 126;
+  const BUS_Y = 196;
+  const WORK_Y = 256;
   const start = result.leave;
   const target = toMinutes(settings.arrivalTime);
   const safeTarget = target - settings.safetyMinutes;
   const end = Math.max(result.arrive, latest ? latest.arrive : 0, target) + 3;
   const x = (t) => LEFT + (t - start) * PX;
   const width = x(end) + 12;
-  const height = 235;
+  const height = 290;
   const parts = [];
 
-  parts.push(`<text x="0" y="${TRAIN_Y + 4}" class="lane">Train</text>`);
-  parts.push(`<text x="0" y="${BUS_Y + 4}" class="lane">Bus</text>`);
-  parts.push(`<line x1="${LEFT}" y1="${TRAIN_Y}" x2="${x(end)}" y2="${TRAIN_Y}" class="rail"/>`);
-  parts.push(`<line x1="${LEFT}" y1="${BUS_Y}" x2="${x(end)}" y2="${BUS_Y}" class="rail"/>`);
+  // Four rows: Home, Train, Bus, Work. Time runs from left to right.
+  const rows = [["Home", HOME_Y], ["Train", TRAIN_Y], ["Bus", BUS_Y], ["Work", WORK_Y]];
+  for (const [name, y] of rows) {
+    parts.push(`<text x="0" y="${y + 4}" class="lane">${name}</text>`);
+    parts.push(`<line x1="${LEFT}" y1="${y}" x2="${x(end)}" y2="${y}" class="rail"/>`);
+  }
 
   const lanes = [
-    { y: TRAIN_Y, list: departures(route.train), side: -1 },
-    { y: BUS_Y, list: departures(route.bus), side: 1 },
+    { y: TRAIN_Y, list: departures(route.train), dy: -12 },
+    { y: BUS_Y, list: departures(route.bus), dy: 20 },
   ];
   for (const lane of lanes) {
     for (const t of lane.list) {
       if (t < start || t > end) continue;
       parts.push(`<line x1="${x(t)}" y1="${lane.y - 6}" x2="${x(t)}" y2="${lane.y + 6}" class="tick"/>`);
-      parts.push(`<text x="${x(t)}" y="${lane.y + lane.side * 14 + (lane.side > 0 ? 4 : 0)}" text-anchor="middle" class="time">${toText(t)}</text>`);
+      parts.push(`<text x="${x(t)}" y="${lane.y + lane.dy}" text-anchor="middle" class="time">${toText(t)}</text>`);
     }
   }
 
-  // Red vertical line: the arrival limit. Green vertical line: the arrival goal with the safety time.
+  // Red vertical line: the arrival limit. Green dashed vertical line: the arrival goal.
   parts.push(`<line x1="${x(target)}" y1="22" x2="${x(target)}" y2="${height - 6}" class="limit"/>`);
   parts.push(`<text x="${x(target) - 6}" y="16" text-anchor="end" class="limit-text">Limit ${settings.arrivalTime}</text>`);
   parts.push(`<line x1="${x(safeTarget)}" y1="22" x2="${x(safeTarget)}" y2="${height - 6}" class="goal"/>`);
   parts.push(`<text x="${x(safeTarget) - 6}" y="16" text-anchor="end" class="goal-text">Goal ${toText(safeTarget)}</text>`);
 
+  // A trip is one line: Home, walk to the train, train, transfer, bus, walk to Work.
   const points = (p) => [
-    [x(p.leave), TRAIN_Y],
+    [x(p.leave), HOME_Y],
     [x(p.trainDeparture), TRAIN_Y],
     [x(p.trainArrival), TRAIN_Y],
     [x(p.busDeparture), BUS_Y],
     [x(p.busDeparture + route.bus.ride), BUS_Y],
-    [x(p.arrive), BUS_Y],
+    [x(p.arrive), WORK_Y],
   ].map(([px, py]) => `${px},${py}`).join(" ");
+  const label = (cls, t, py, text, dy) =>
+    parts.push(`<text x="${x(t)}" y="${py + dy}" text-anchor="middle" class="mark ${cls}">${text}</text>`);
 
-  // Red trip: the latest trip that still arrives by the limit. Draw it first, so green is on top.
-  const dot = (cls, t, py, label, dy) => {
-    parts.push(`<circle cx="${x(t)}" cy="${py}" r="5" class="${cls}"/>`);
-    parts.push(`<text x="${x(t)}" y="${py + dy}" text-anchor="middle" class="mark ${cls}">${label}</text>`);
-  };
+  // Draw the red trip first, so the green trip is on top.
   if (latest) {
     parts.push(`<polyline points="${points(latest)}" class="trip late"/>`);
-    dot("late", latest.leave, TRAIN_Y, `Latest leave ${toText(latest.leave)}`, -52);
-    dot("late", latest.busDeparture, BUS_Y, `Latest bus ${toText(latest.busDeparture)}`, 54);
-    dot("late", latest.arrive, BUS_Y, `Arrive ${toText(latest.arrive)}`, 54);
+    label("late", latest.leave, HOME_Y, `Latest leave ${toText(latest.leave)}`, -28);
+    label("late", latest.arrive, WORK_Y, `Latest arrive ${toText(latest.arrive)}`, 36);
   }
-
   parts.push(`<polyline points="${points(result)}" class="trip safe"/>`);
-  dot("safe", result.leave, TRAIN_Y, `Leave ${toText(result.leave)}`, -34);
-  dot("safe", result.trainDeparture, TRAIN_Y, "Train departs", -34);
-  dot("safe", result.trainArrival, TRAIN_Y, "Train arrives", -34);
-  dot("safe", result.busDeparture, BUS_Y, "Bus departs", 36);
-  dot("safe", result.arrive, BUS_Y, `Arrive ${toText(result.arrive)}`, 36);
+  label("safe", result.leave, HOME_Y, `Leave ${toText(result.leave)}`, -12);
+  label("safe", result.arrive, WORK_Y, `Arrive ${toText(result.arrive)}`, 20);
 
   $("timeline").innerHTML =
     `<div class="scroll"><svg viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" role="img" ` +
-    `aria-label="Timeline. Green: leave at ${toText(result.leave)} to arrive by ${toText(safeTarget)}. ` +
-    (latest ? `Red: the latest leave time is ${toText(latest.leave)} to arrive by ${settings.arrivalTime}.` : "") +
+    `aria-label="Timeline. Green: leave at ${toText(result.leave)} and arrive at ${toText(result.arrive)}. ` +
+    (latest ? `Red: the latest leave time is ${toText(latest.leave)}, and you arrive at ${toText(latest.arrive)}.` : "") +
     `">` + parts.join("") + "</svg></div>";
 }
 
