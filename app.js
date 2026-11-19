@@ -99,7 +99,7 @@ function drawTimeline() {
   label("safe", result.arrive, WORK_Y, `Arrive ${toText(result.arrive)}`, 20, "end");
 
   $("timeline").innerHTML =
-    `<div class="scroll"><svg viewBox="0 0 ${width} ${height}" width="100%" role="img" ` +
+    `<div class="scroll"><svg viewBox="0 0 ${width} ${height}" width="${width}" style="display:block;max-width:100%;height:auto" role="img" ` +
     `aria-label="Timeline. Green: leave at ${toText(result.leave)} and arrive at ${toText(result.arrive)}. ` +
     (latest ? `Red: the latest leave time is ${toText(latest.leave)}, and you arrive at ${toText(latest.arrive)}.` : "") +
     `">` + parts.join("") + "</svg></div>";
@@ -185,4 +185,5 @@ $("test").addEventListener("click", () => {
 render();
 setInterval(render, 30 * 1000);
 window.addEventListener("resize", render);
+window.addEventListener("load", render);
 schedule();
