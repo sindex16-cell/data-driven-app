@@ -17,13 +17,32 @@ export function toText(minutes) {
 }
 
 // Make the list of departure times for one service.
+// If service.live has times, use them first. Use the timetable only after the last live time.
 export function departures(service) {
   if (!(service.every > 0)) throw new Error("The value of every must be more than 0.");
-  const list = [];
+  const live = service.live || [];
+  const lastLive = live.length ? Math.max(...live) : -Infinity;
+  const list = [...live];
   for (let t = toMinutes(service.first); t <= toMinutes(service.last); t += service.every) {
-    list.push(t);
+    if (t > lastLive) list.push(t);
   }
   return list;
+}
+
+// Read the live bus times from the answer of the community API (Arrivelah).
+// Return minutes after midnight in Singapore time, or [] if the service is not in the answer.
+export function liveTimes(answer, serviceNo) {
+  const found = ((answer && answer.services) || []).find((s) => s.no === serviceNo);
+  if (!found) return [];
+  return ["next", "subsequent", "next2", "next3"]
+    .map((key) => found[key])
+    .filter((bus) => bus && typeof bus.time === "string" && bus.duration_ms >= 0)
+    .map((bus) => {
+      const [h, m, s] = bus.time.slice(11, 19).split(":").map(Number);
+      return h * 60 + m + s / 60;
+    })
+    .filter((t, i, all) => !Number.isNaN(t) && all.indexOf(t) === i)
+    .sort((a, b) => a - b);
 }
 
 // Find the latest leave time so that you arrive at the target time or before.

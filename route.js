@@ -20,6 +20,16 @@ export const route = {
   walkToDestination: 5,    // Bus stop to the meeting room.
 };
 
+// Live bus times from the community API Arrivelah. Set enabled to false to use only the timetable.
+// stopCode is the 5 digit bus stop code. service is the bus number.
+export const live = {
+  enabled: true,
+  url: "https://arrivelah2.busrouter.sg/",
+  stopCode: "83139",       // SAMPLE value. Replace it with your bus stop.
+  service: "15",           // SAMPLE value. Replace it with your bus.
+  refreshSeconds: 30,
+};
+
 export const settings = {
   arrivalTime: "09:00",    // Version 1 uses one fixed arrival time.
   safetyMinutes: 10,       // The green plan arrives 10 minutes before the arrival time.

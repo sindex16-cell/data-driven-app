@@ -1,5 +1,5 @@
-import { toMinutes, toText, plan, departures } from "./core.js";
-import { route, settings } from "./route.js";
+import { toMinutes, toText, plan, departures, liveTimes } from "./core.js";
+import { route, settings, live } from "./route.js";
 
 // Green plan: arrive with the safety time to spare. Red plan: the latest leave time that is still on time.
 function computePlans() {
@@ -13,11 +13,19 @@ function computePlans() {
 let result = null;
 let latest = null;
 let planError = "";
-try {
-  ({ result, latest } = computePlans());
-} catch (error) {
-  planError = `The data in route.js is not valid: ${error.message}`;
+let liveMessage = "";
+
+function updatePlans() {
+  try {
+    ({ result, latest } = computePlans());
+    planError = "";
+  } catch (error) {
+    result = null;
+    latest = null;
+    planError = `The data in route.js is not valid: ${error.message}`;
+  }
 }
+updatePlans();
 let timerId = null;
 
 const $ = (id) => document.getElementById(id);
@@ -102,6 +110,26 @@ function drawTimeline() {
     `">` + parts.join("") + "</svg></div>";
 }
 
+// Get the live bus times. If this fails, the app uses the timetable.
+async function refreshLive() {
+  if (!live.enabled) return;
+  try {
+    const response = await fetch(`${live.url}?id=${encodeURIComponent(live.stopCode)}`, { signal: AbortSignal.timeout(8000) });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const times = liveTimes(await response.json(), live.service);
+    route.bus.live = times;
+    liveMessage = times.length
+      ? `Live data: bus ${live.service} at stop ${live.stopCode} arrives at ${times.map(toText).join(", ")}.`
+      : `Live data: no bus ${live.service} at stop ${live.stopCode} now. The page uses the timetable.`;
+  } catch (error) {
+    route.bus.live = [];
+    liveMessage = "Live bus data is not available. The page uses the timetable.";
+  }
+  updatePlans();
+  schedule();
+  render();
+}
+
 function render() {
   if (!result) {
     for (const id of ["timeline", "steps", "target", "travel", "latest", "warn", "countdown"]) $(id).textContent = "";
@@ -124,6 +152,7 @@ function render() {
   $("latest").textContent = latest
     ? `The latest time to leave is ${toText(latest.leave)}. After this time, you arrive late.`
     : "";
+  $("live").textContent = liveMessage;
   $("warn").textContent = `Warning at ${toText(result.notifyAt)} (${settings.warnMinutes} minutes before you leave).`;
 
   const minutesLeft = Math.round(result.leave - nowMinutes());
@@ -180,6 +209,8 @@ $("test").addEventListener("click", () => {
 });
 
 render();
+refreshLive();
 setInterval(render, 30 * 1000);
+setInterval(refreshLive, live.refreshSeconds * 1000);
 window.addEventListener("resize", render);
 schedule();
