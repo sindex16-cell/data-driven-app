@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Tests</title></head>
+<body>
+  <h1>Tests</h1>
+  <pre id="out"></pre>
+  <script type="module">
+    import { toMinutes, toText, plan } from "./core.js";
+    import { route } from "./route.js";
+
+    const lines = [];
+    function check(name, actual, expected) {
+      const ok = actual === expected;
+      lines.push(`${ok ? "PASS" : "FAIL"}  ${name}${ok ? "" : `  (got ${actual}, expected ${expected})`}`);
+    }
+
+    check("toMinutes", toMinutes("09:00"), 540);
+    check("toText", toText(484), "08:04");
+
+    // Sample route: bus at 08:35 is the latest that arrives by 09:00.
+    // Train at 08:12 is the latest that connects. Leave at 08:04.
+    const p = plan(route, toMinutes("09:00"), 10);
+    check("busDeparture", toText(p.busDeparture), "08:35");
+    check("trainDeparture", toText(p.trainDeparture), "08:12");
+    check("leave", toText(p.leave), "08:04");
+    check("notifyAt", toText(p.notifyAt), "07:54");
+    check("arrive", toText(p.arrive), "08:55");
+    check("arrive is on time", p.arrive <= toMinutes("09:00"), true);
+
+    check("toText wraps below 0", toText(-5), "23:55");
+    check("toText wraps above 1439", toText(1500), "01:00");
+
+    let threw = false;
+    try { plan({ ...route, bus: { ...route.bus, every: 0 } }, 540, 10); } catch (e) { threw = true; }
+    check("every of 0 throws", threw, true);
+
+    // The first bus can arrive by 06:30, but no train connects to it.
+    check("bus but no train", plan(route, toMinutes("06:30"), 10), null);
+
+    check("no trip before the first bus", plan(route, toMinutes("06:10"), 10), null);
+
+    document.getElementById("out").textContent = lines.join("\n");
+  </script>
+</body>
+</html>

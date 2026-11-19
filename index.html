@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Leave Time</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 28rem; margin: 2rem auto; padding: 0 1rem; line-height: 1.5; }
+    #leave { font-size: 4rem; font-weight: 700; margin: 0; }
+    #target, #countdown, #latest, #warn, #status { color: #555; margin: .25rem 0; }
+    #timeline { margin: 1rem 0; }
+    #timeline .scroll { overflow-x: auto; }
+    #timeline .goal { stroke: #1a9850; stroke-width: 2; stroke-dasharray: 4 3; }
+    #timeline .goal-text { font-size: 11px; font-weight: 700; fill: #1a7a3f; }
+    #timeline .trip.late { stroke: #d64545; opacity: .85; }
+    #timeline circle.late { fill: #d64545; }
+    #timeline .mark.late { fill: #d64545; }
+    #timeline .limit { stroke: #d64545; stroke-width: 2; }
+    #timeline .limit-text { font-size: 11px; font-weight: 700; fill: #d64545; }
+    #timeline .rail { stroke: #bbb; stroke-width: 2; }
+    #timeline .tick { stroke: #888; stroke-width: 1.5; }
+    #timeline .trip { fill: none; stroke-width: 5; stroke-linejoin: round; stroke-linecap: round; opacity: .9; }
+    #timeline .time { font-size: 10px; fill: #666; }
+    #timeline .lane { font-size: 12px; font-weight: 700; fill: #333; }
+    #timeline .mark { font-size: 11px; font-weight: 600; fill: #1a7a3f; }
+    #timeline circle { fill: #1a9850; }
+    #timeline .trip { stroke: #1a9850; }
+    ol { padding-left: 1.25rem; }
+    button { font: inherit; padding: .5rem 1rem; margin: .25rem .25rem .25rem 0; }
+  </style>
+</head>
+<body>
+  <!-- Browsers block ES modules over file://. Run "python3 -m http.server" in this folder and open http://localhost:8000 -->
+  <p id="target"></p>
+  <h1 id="leave"></h1>
+  <p id="countdown"></p>
+  <div id="timeline"></div>
+  <ol id="steps"></ol>
+  <p id="detail"></p>
+  <p id="latest"></p>
+  <p id="warn"></p>
+  <button id="enable">Turn on notification</button>
+  <button id="test">Test notification</button>
+  <p id="status"></p>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
