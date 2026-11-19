@@ -10,8 +10,14 @@ function computePlans() {
   };
 }
 
-let { result, latest } = computePlans();
-let planDay = new Date().toDateString();
+let result = null;
+let latest = null;
+let planError = "";
+try {
+  ({ result, latest } = computePlans());
+} catch (error) {
+  planError = `The data in route.js is not valid: ${error.message}`;
+}
 let timerId = null;
 
 const $ = (id) => document.getElementById(id);
@@ -19,15 +25,6 @@ const $ = (id) => document.getElementById(id);
 function nowMinutes() {
   const now = new Date();
   return now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
-}
-
-// Compute the plan again when the date changes, so the page keeps working after midnight.
-function refreshDay() {
-  const today = new Date().toDateString();
-  if (today === planDay) return;
-  planDay = today;
-  ({ result, latest } = computePlans());
-  schedule();
 }
 
 // Draw the timeline. Time runs from the top to the bottom.
@@ -44,7 +41,7 @@ function drawTimeline() {
   const safeTarget = target - settings.safetyMinutes;
   const end = Math.max(result.arrive, latest ? latest.arrive : 0, target) + 3;
   // Fit the timeline to the width of the page, so it needs no side scroll.
-  const width = Math.max(300, $("timeline").clientWidth);
+  const width = Math.max(200, $("timeline").clientWidth);
   const PX = (width - LEFT - 14) / (end - start);
   const x = (t) => LEFT + (t - start) * PX;
   const height = 290;
@@ -106,13 +103,13 @@ function drawTimeline() {
 }
 
 function render() {
-  refreshDay();
   if (!result) {
-    $("timeline").innerHTML = "";
+    for (const id of ["timeline", "steps", "target", "travel", "latest", "warn", "countdown"]) $(id).textContent = "";
     $("leave").textContent = "No trip";
-    $("detail").textContent = "The timetable cannot reach the arrival time. Check route.js.";
+    $("detail").textContent = planError || "The timetable cannot reach the arrival time. Check route.js.";
     return;
   }
+  $("detail").textContent = "";
   drawTimeline();
   $("leave").textContent = toText(result.leave);
   $("target").textContent = `To arrive by ${toText(toMinutes(settings.arrivalTime) - settings.safetyMinutes)} (${settings.safetyMinutes} minutes before ${settings.arrivalTime})`;
@@ -185,5 +182,4 @@ $("test").addEventListener("click", () => {
 render();
 setInterval(render, 30 * 1000);
 window.addEventListener("resize", render);
-window.addEventListener("load", render);
 schedule();
